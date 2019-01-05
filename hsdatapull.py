@@ -10,11 +10,27 @@ from selenium.webdriver.chrome.options import Options
 # from selenium.webdriver.support.ui import WebDriverWait
 # from selenium.webdriver.support import expected_conditions as EC
 
+import signal
+
+gdriver = None
+
+def handle_exit():
+    try:
+        gdriver.quit()
+    except e:
+        print('No selenium driver.')
+    print('Clean exit')
+
+atexit.register(handle_exit)
+signal.signal(signal.SIGTERM, handle_exit)
+signal.signal(signal.SIGINT, handle_exit)
+
 def main():
     print('Starting data pull.')
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     driver = webdriver.Chrome(options=chrome_options)
+    gdriver = driver
 #     driver = webdriver.Chrome() #If you want to see it run browser
     # driver.implicitly_wait(10)
     
@@ -43,6 +59,7 @@ def main():
         url = base_url + link + '#tab=matchups'
         print(f'{deck}={url}')
         driver.get(url)
+        gdriver = driver
         time.sleep(5)
         innerHTML = driver.execute_script("return document.body.innerHTML")
         soup = BeautifulSoup(innerHTML, 'html.parser')

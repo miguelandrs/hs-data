@@ -10,41 +10,47 @@ from selenium.webdriver.chrome.options import Options
 # from selenium.webdriver.support.ui import WebDriverWait
 # from selenium.webdriver.support import expected_conditions as EC
 
-import signal
+# import signal
+# import atexit
 
-gdriver = None
+# gdriver = None
 
-def handle_exit():
-    try:
-        gdriver.quit()
-    except e:
-        print('No selenium driver.')
-    print('Clean exit')
+# def handle_exit():
+#     try:
+#         gdriver.quit()
+#     except Exception as e:
+#         print('No selenium driver.')
+#     print('Clean exit')
 
-atexit.register(handle_exit)
-signal.signal(signal.SIGTERM, handle_exit)
-signal.signal(signal.SIGINT, handle_exit)
+# atexit.register(handle_exit)
+# signal.signal(signal.SIGTERM, handle_exit)
+# signal.signal(signal.SIGINT, handle_exit)
+
+def clean_names(names):
+    return list(map(lambda deck:deck.replace('-', ' ').title(), list(names)))
 
 def main():
     print('Starting data pull.')
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     driver = webdriver.Chrome(options=chrome_options)
-    gdriver = driver
-#     driver = webdriver.Chrome() #If you want to see it run browser
+    # gdriver = driver
+    # driver = webdriver.Chrome() #If you want to see it run browser
     # driver.implicitly_wait(10)
     
     # Get parent HTML
-    print("Getting https://hsreplay.net/meta/#tab=tierlist...")
-    driver.get('https://hsreplay.net/meta/#tab=tierlist')
+    print("Getting https://hsreplay.net/meta/#tab=archetypes...")
+    driver.get('https://hsreplay.net/meta/#tab=archetypes')
     time.sleep(10)
     
     # Grab all meta deck links
     print("Getting nested HTML from https://hsreplay.net/meta/#tab=tierlist...")
     innerHTML = driver.execute_script("return document.body.innerHTML")
     soup = BeautifulSoup(innerHTML, 'html.parser')
-    all_decks = soup.find_all("li", class_="archetype-list-item")
-    links = list(map(lambda tag: tag.find("a").get('href'), all_decks))
+    all_decks = soup.find_all("a",class_="table-cell", attrs={"aria-describedby": re.compile("column0")})
+    archetypes = list(map(lambda tag: (tag.get('href'), tag.contents[0].rstrip('%')), all_decks))
+    archetypes_f = list(filter(lambda archetype: archetype[0] is not None, archetypes))
+    links = [x[0] for x in archetypes_f]
     print(f"deck links found {links}")
     
     # Setup name extract and base url for scrape
@@ -59,7 +65,7 @@ def main():
         url = base_url + link + '#tab=matchups'
         print(f'{deck}={url}')
         driver.get(url)
-        gdriver = driver
+        # gdriver = driver
         time.sleep(5)
         innerHTML = driver.execute_script("return document.body.innerHTML")
         soup = BeautifulSoup(innerHTML, 'html.parser')
@@ -67,15 +73,26 @@ def main():
         winrates[deck] = list(map(lambda matchup: (float(matchup.contents[0].rstrip('%')), deck_name_extract.search(matchup.get('href')).group()), matchups))
 
         zlst = list(zip(*winrates[deck]))
-        s_wr = pd.Series(zlst[0], index=zlst[1])
+        try:
+            s_wr = pd.Series(zlst[0], index=zlst[1])
+        except IndexError as e:
+            print(f"Unable to get winrates for: {deck}")
+            continue
 
         df_wr[deck] = s_wr
 
     driver.quit()
 
-    # Order df/csv columns and save
+    # Order df/csv columns and save        
+    df_wr.columns = clean_names(df_wr.columns.values)
+    df_wr.index = clean_names(df_wr.index.values)
+
     df_wr = df_wr.T
-    df_wr = df_wr[list(df_wr.index.values)]
+    try:
+        df_wr = df_wr[list(df_wr.index.values)]
+    except KeyError as e:
+        print(f"Unable to sort decks due to: {e}")
+    
     fname = f"hsreplay_winrates_{datetime.today().strftime('%Y%m%d')}.csv"
  
     print(f'Saving {fname}')

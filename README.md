@@ -11,6 +11,6 @@ pip install -r requirements.txt
 5. download the latest chrome driver and add location to PATH http://chromedriver.chromium.org/downloads
 6. run: 
 ```
-python hsdatapull.py
+python -u hsdatapull.py
 ```
 7. enjoy the created csv named hsreplay_winrates_YYYYMMDD.csv!

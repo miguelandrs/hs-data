@@ -51,13 +51,18 @@ def main():
     archetypes = list(map(lambda tag: (tag.get('href'), tag.contents[0].rstrip('%')), all_decks))
     archetypes_f = list(filter(lambda archetype: archetype[0] is not None, archetypes))
     links = [x[0] for x in archetypes_f]
-    print(f"deck links found {links}")
+    
+    deck_name_extract = re.compile('[^\/]+$')
+    
+    all_archetypes = list(map(lambda link: deck_name_extract.search(link).group(), links))
+    
+    print(f"archetypes found {all_archetypes}")
     
     # Setup name extract and base url for scrape
-    deck_name_extract = re.compile('[^\/]+$')
+
     base_url = 'https://hsreplay.net'
     winrates = {}
-    df_wr = pd.DataFrame()
+    df_wr = pd.DataFrame(index=all_archetypes, columns=all_archetypes)
 
     # Check each deck/archetype for matchup data
     for link in links:
@@ -88,10 +93,10 @@ def main():
     df_wr.index = clean_names(df_wr.index.values)
 
     df_wr = df_wr.T
-    try:
-        df_wr = df_wr[list(df_wr.index.values)]
-    except KeyError as e:
-        print(f"Unable to sort decks due to: {e}")
+    # try:
+    #     df_wr = df_wr[list(df_wr.index.values)]
+    # except KeyError as e:
+    #     print(f"Unable to sort decks due to: {e}")
     
     fname = f"hsreplay_winrates_{datetime.today().strftime('%Y%m%d')}.csv"
  

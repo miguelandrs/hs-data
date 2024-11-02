@@ -6,25 +6,6 @@ from bs4 import BeautifulSoup
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-# from selenium.webdriver.common.by import By
-# from selenium.webdriver.support.ui import WebDriverWait
-# from selenium.webdriver.support import expected_conditions as EC
-
-# import signal
-# import atexit
-
-# gdriver = None
-
-# def handle_exit():
-#     try:
-#         gdriver.quit()
-#     except Exception as e:
-#         print('No selenium driver.')
-#     print('Clean exit')
-
-# atexit.register(handle_exit)
-# signal.signal(signal.SIGTERM, handle_exit)
-# signal.signal(signal.SIGINT, handle_exit)
 
 def clean_names(names):
     return list(map(lambda deck:deck.replace('-', ' ').title(), list(names)))
